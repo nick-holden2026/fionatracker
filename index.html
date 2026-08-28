@@ -99,6 +99,7 @@
   <button data-tab="tracker" class="active" aria-current="page">Tracker</button>
   <button data-tab="today">Today</button>
   <button data-tab="planner">Planner</button>
+  <button data-tab="recipes">Recipes</button>
   <button data-tab="workout">Workout</button>
   <button data-tab="sleep">Sleep</button>
   <button data-tab="progress">Progress</button>
@@ -245,6 +246,7 @@ function render(){
     `Week ${wk.week}/${DB.profile.targetWeeks} · Target: ${DB.profile.startWeight - DB.profile.goalWeight}kg over ${DB.profile.targetWeeks} weeks`;
   if(activeTab==='today') return renderToday(main);
   if(activeTab==='planner') return renderPlanner(main);
+  if(activeTab==='recipes') return renderRecipes(main);
   if(activeTab==='workout') return renderWorkout(main);
   if(activeTab==='sleep') return renderSleep(main);
   if(activeTab==='progress') return renderProgress(main);
@@ -446,6 +448,104 @@ function renderHistory(main){
           </div>`).join('')}
       </div>`}
     </div>
+  `;
+}
+
+/* ============ RECIPES TAB ============ */
+// Chef-curated additions — built around YOUR fixed foods (paneer, soya, eggs, besan, curd,
+// homemade ghee, sprouts) and YOUR constraints (1-hour window, minimal chopping, stove +
+// pressure cooker). Every recipe is a genuine alternative to swap into any lunch/dinner slot —
+// not just dal-rice on repeat. Dressings are sized for ONE half-salad-bowl portion.
+const RECIPES = [
+  {
+    cat: 'Salad Dressing', time: '3 min · no cook',
+    name: 'Lemon-Herb Curd Dressing',
+    fit: 'Drizzle over any subscription salad bowl (4:30 AM)',
+    ingredients: ['3 tbsp homemade curd', '1 tsp lemon juice', '¼ tsp roasted jeera powder', 'pinch black salt', '1 tsp chopped coriander', '¼ tsp olive oil (optional)'],
+    steps: ['Whisk curd until smooth.', 'Stir in lemon juice, jeera powder, black salt.', 'Fold in coriander, drizzle oil if using.', 'Pour over salad just before eating — keeps it from going watery overnight.'],
+    kcal: 45, protein: 3,
+  },
+  {
+    cat: 'Salad Dressing', time: '4 min · no cook',
+    name: 'Peanut-Chili Dressing',
+    fit: 'Great on Peanut Punch or Black Chana Chat bowls',
+    ingredients: ['1 tbsp peanut butter (unsweetened) or 10 crushed roasted peanuts', '1 tsp lemon juice', '2 tsp water to thin', '¼ tsp red chili powder', 'pinch salt'],
+    steps: ['Mix peanut butter/crushed peanuts with lemon juice.', 'Thin with water to a pourable consistency.', 'Add chili powder and salt, mix well.', 'Toss through salad — adds ~5g extra protein for almost no extra prep.'],
+    kcal: 70, protein: 5,
+  },
+  {
+    cat: 'Lunch', time: '12 min · stove',
+    name: "Chef's Besan Chilla (protein pancake)",
+    fit: 'Swap for any lunch slot — faster than roti+sabji',
+    ingredients: ['40g besan (gram flour)', '1 tbsp curd', '2 tbsp finely grated carrot/onion (pre-cut Sunday)', '¼ tsp turmeric, ajwain, salt', 'water to batter consistency', '1 tsp oil for cooking'],
+    steps: ['Whisk besan + curd + spices + water into a smooth, dosa-thick batter (do this the night before and refrigerate — zero morning prep).', 'Heat a flat pan, pour a ladle, spread thin.', 'Drizzle ¼ tsp oil around edges, cook 2 min a side until golden.', 'Serve with the peanut-chili dressing above as a dip instead of chutney.'],
+    kcal: 260, protein: 14,
+  },
+  {
+    cat: 'Lunch', time: '10 min · pressure cooker',
+    name: 'Soya Chunk & Vegetable Pulao',
+    fit: 'One-pot — ideal for your 1-hour home break',
+    ingredients: ['¾ katori rice (washed)', '20g soya chunks (soaked in hot water 10 min, squeezed)', '2 tbsp frozen mixed veg', '½ tsp ghee', 'whole garam masala (1 clove, 1 bay leaf)', 'salt to taste'],
+    steps: ['Soak soya chunks in hot water while you gather everything else — 10 min, no attention needed.', 'Heat ghee in cooker, add whole spices, rice, squeezed soya chunks, veg.', 'Add water (1:1.5 ratio), salt, pressure cook 2 whistles.', 'Fluff and pack — protein-dense one-pot meal, minimal chopping.'],
+    kcal: 340, protein: 20,
+  },
+  {
+    cat: 'Lunch', time: '8 min · stove',
+    name: 'Paneer Bhurji Wrap (protein roti)',
+    fit: 'Faster than plain roti-sabji, same protein-roti base',
+    ingredients: ['60g paneer, crumbled', '2 tbsp chopped tomato-onion (pre-cut)', '¼ tsp turmeric, red chili, salt', '½ tsp oil', '1 protein roti (~25g atta)'],
+    steps: ['Heat oil, sauté onion-tomato 2 min.', 'Add crumbled paneer + spices, cook 3 min stirring.', 'Roll into the warm protein roti.', 'Wrap in foil to carry — no plate needed, eat on the go if you\'re short on time.'],
+    kcal: 300, protein: 26,
+  },
+  {
+    cat: 'Dinner', time: '15 min · stove', 
+    name: 'Chef-Style Egg Curry (2 eggs)',
+    fit: 'A home-dinner alternative to plain boiled/omelette eggs',
+    ingredients: ['2 boiled eggs, halved', '3 tbsp onion-tomato masala (batch-cooked, frozen in portions)', '¼ tsp ginger-garlic paste', '¼ tsp garam masala', '½ tsp ghee', 'coriander to finish'],
+    steps: ['Batch-cook onion-tomato masala base on Sunday, freeze in 6 small portions.', 'Heat ghee, add ginger-garlic, then one frozen masala portion — let it melt down and cook 4 min.', 'Add garam masala, splash of water for gravy consistency.', 'Nestle in halved eggs, simmer 3 min, top with coriander.'],
+    kcal: 260, protein: 16,
+  },
+  {
+    cat: 'Dinner', time: '10 min · stove',
+    name: 'Sprouts & Paneer Stir-Fry',
+    fit: 'Uses leftover sprouts + paneer — zero waste, high protein',
+    ingredients: ['50g mixed sprouts', '50g paneer cubes', '1 tsp oil', '¼ tsp cumin seeds', 'pinch turmeric, chaat masala', 'squeeze of lemon'],
+    steps: ['Heat oil, splutter cumin.', 'Add sprouts, sauté 3–4 min until just tender (keep crunch).', 'Add paneer cubes, turmeric, toss 2 min.', 'Off heat, finish with chaat masala + lemon.'],
+    kcal: 240, protein: 18,
+  },
+  {
+    cat: 'Dinner', time: '12 min · pressure cooker',
+    name: 'Homestyle Moong Dal Khichdi, Chef Version',
+    fit: 'Upgrade on the basic khichdi with real seasoning technique',
+    ingredients: ['½ katori rice + ½ katori moong dal (washed together)', '½ tsp ghee', '¼ tsp cumin seeds, hing, turmeric', '2 tbsp mixed veg', 'salt'],
+    steps: ['Heat ghee, temper cumin + hing — this step is what makes it taste "restaurant" not "hospital food."', 'Add rice-dal mix, veg, turmeric, stir 1 min to coat in the tempering.', 'Add water (1:3), salt, pressure cook 3 whistles.', 'Rest 5 min before opening — texture sets better.'],
+    kcal: 290, protein: 14,
+  },
+];
+
+function renderRecipes(main){
+  const cats = [...new Set(RECIPES.map(r=>r.cat))];
+  main.innerHTML = `
+    <div class="card">
+      <h2>👨‍🍳 Chef-Curated Recipes</h2>
+      <div class="muted">Real alternatives to rotate in — not just the placeholder meals from your planner. All built around your actual pantry (paneer, soya, besan, curd, homemade ghee) and your 1-hour cooking window.</div>
+    </div>
+    ${cats.map(cat=>`
+      <div class="card">
+        <h2>${cat}</h2>
+        <div class="stack">
+          ${RECIPES.filter(r=>r.cat===cat).map(r=>`
+            <div class="rec-card">
+              <div class="rec-top"><span>${r.name}</span></div>
+              <div class="rec-sub">${r.time} · ${r.fit}</div>
+              <h3 style="margin:10px 0 4px;font-size:13px;">Ingredients</h3>
+              <div class="muted" style="font-size:13px;line-height:1.6;">${r.ingredients.map(i=>`• ${i}`).join('<br>')}</div>
+              <h3 style="margin:10px 0 4px;font-size:13px;">Method</h3>
+              <div class="muted" style="font-size:13px;line-height:1.6;">${r.steps.map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div>
+              <div class="rec-stats" style="margin-top:10px;"><span><b>${r.kcal}</b> kcal</span><span><b>${r.protein}g</b> protein</span></div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('')}
   `;
 }
 
