@@ -132,6 +132,21 @@ DB = {
 ======================================= */
 
 const DB_KEY = 'fitTrackerDB_v1';
+
+/* Real per-unit values, derived from YOUR stated data — must be defined BEFORE loadDB() runs,
+   since a fresh browser with no saved data calls buildDefaultPlan() -> saladFor() immediately.
+   - Protein atta: 46g protein / 100g atta -> 1 roti (~25g atta) = 11.5g protein, ~90kcal
+   - Baker's Loaf: 53g protein / 350g loaf, ~7.5 slices -> 1 slice = ~7g protein, ~85kcal
+   - Salad half-bowl and sprout-bowl kcal/protein are still ESTIMATES (no label given) */
+const SALAD_WEEK1 = ['Mexican Corn','Peanut Punch','Black Chana Chat','Poshan Paneer','Fruity Fun'];
+const SALAD_WEEK2 = ['Chatpata Chickpea','Sprouts Protein Salad','Mexican Veg Bowl','Soya Power Bowl','Five Bean Bowl'];
+// Toggle this to 2 once week 2 of your subscription starts
+const SALAD_ACTIVE_WEEK = 1;
+function saladFor(dayIdx){ // 0=Mon..4=Fri
+  const list = SALAD_ACTIVE_WEEK===1 ? SALAD_WEEK1 : SALAD_WEEK2;
+  return list[dayIdx];
+}
+
 let DB = loadDB();
 
 function loadDB(){
@@ -159,19 +174,6 @@ function defaultDB(){
       {id:9, time:'21:15', label:'Wind down for sleep', days:[0,1,2,3,4], enabled:true},
     ]
   };
-}
-
-/* Real per-unit values, derived from YOUR stated data:
-   - Protein atta: 46g protein / 100g atta -> 1 roti (~25g atta) = 11.5g protein, ~90kcal
-   - Baker's Loaf: 53g protein / 350g loaf, ~7.5 slices -> 1 slice = ~7g protein, ~85kcal
-   - Salad half-bowl and sprout-bowl kcal/protein are still ESTIMATES (no label given) */
-const SALAD_WEEK1 = ['Mexican Corn','Peanut Punch','Black Chana Chat','Poshan Paneer','Fruity Fun'];
-const SALAD_WEEK2 = ['Chatpata Chickpea','Sprouts Protein Salad','Mexican Veg Bowl','Soya Power Bowl','Five Bean Bowl'];
-// Toggle this to 2 once week 2 of your subscription starts
-const SALAD_ACTIVE_WEEK = 1;
-function saladFor(dayIdx){ // 0=Mon..4=Fri
-  const list = SALAD_ACTIVE_WEEK===1 ? SALAD_WEEK1 : SALAD_WEEK2;
-  return list[dayIdx];
 }
 
 function buildDefaultPlan(){
