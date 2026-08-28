@@ -96,7 +96,8 @@
 </header>
 
 <nav id="tabs" aria-label="Main sections">
-  <button data-tab="today" class="active" aria-current="page">Today</button>
+  <button data-tab="tracker" class="active" aria-current="page">Tracker</button>
+  <button data-tab="today">Today</button>
   <button data-tab="planner">Planner</button>
   <button data-tab="workout">Workout</button>
   <button data-tab="sleep">Sleep</button>
@@ -222,7 +223,7 @@ function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function nowMin(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); }
 
 /* ============ NAVIGATION ============ */
-let activeTab = 'today';
+let activeTab = 'tracker';
 document.getElementById('tabs').addEventListener('click', e=>{
   if(e.target.tagName==='BUTTON'){
     activeTab = e.target.dataset.tab;
@@ -245,6 +246,7 @@ function render(){
   if(activeTab==='workout') return renderWorkout(main);
   if(activeTab==='sleep') return renderSleep(main);
   if(activeTab==='progress') return renderProgress(main);
+  if(activeTab==='tracker') return renderHistory(main);
   if(activeTab==='reminders') return renderReminders(main);
   if(activeTab==='settings') return renderSettings(main);
 }
@@ -257,6 +259,71 @@ function weekProgress(){
 }
 
 function barClass(pct){ return pct>=100 ? 'over' : pct>=80 ? 'warn' : 'ok'; }
+
+/* ============ COMPLETION / ACHIEVEMENTS ============ */
+// A day counts as "adhered" if ALL logged meals are checked done AND (if a workout was
+// scheduled that day) the workout is marked done. A day with no log yet is not counted.
+function dayCompletion(dateStr){
+  const log = DB.logs[dateStr];
+  if(!log || !log.meals || log.meals.length===0) return null; // no data that day
+  const mealsTotal = log.meals.length;
+  const mealsDone = log.meals.filter(m=>m.done).length;
+  const dow = new Date(dateStr+'T12:00:00').getDay();
+  const dn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow];
+  const workoutScheduled = !!DB.weeklyPlan[dn];
+  const workoutDone = !workoutScheduled || !!log.workout?.done;
+  const pct = Math.round(((mealsDone + (workoutDone?1:0)) / (mealsTotal + 1)) * 100);
+  const perfect = mealsDone===mealsTotal && workoutDone;
+  return {mealsTotal, mealsDone, workoutScheduled, workoutDone, pct, perfect};
+}
+
+function currentStreak(){
+  let streak = 0;
+  let d = new Date();
+  // don't break streak just because today isn't finished yet — start checking from yesterday
+  // if today isn't a perfect day, but count today if it already is
+  const todayC = dayCompletion(todayStr(d));
+  if(todayC && todayC.perfect) streak++;
+  d.setDate(d.getDate()-1);
+  while(true){
+    const c = dayCompletion(todayStr(d));
+    if(c && c.perfect){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+
+function longestStreak(){
+  const dates = Object.keys(DB.logs).sort();
+  let longest=0, running=0, prevDate=null;
+  dates.forEach(ds=>{
+    const c = dayCompletion(ds);
+    if(c && c.perfect){
+      if(prevDate){
+        const gapDays = Math.round((new Date(ds)-new Date(prevDate))/86400000);
+        running = gapDays===1 ? running+1 : 1;
+      } else { running = 1; }
+      longest = Math.max(longest, running);
+      prevDate = ds;
+    } else {
+      running = 0; prevDate = null;
+    }
+  });
+  return longest;
+}
+
+function totalPerfectDays(){
+  return Object.keys(DB.logs).filter(ds=>{ const c=dayCompletion(ds); return c && c.perfect; }).length;
+}
+
+const BADGES = [
+  {id:'first', label:'🌱 First Perfect Day', check: t=>t.totalPerfect>=1},
+  {id:'streak3', label:'🔥 3-Day Streak', check: t=>t.longest>=3},
+  {id:'streak7', label:'🏅 7-Day Streak', check: t=>t.longest>=7},
+  {id:'streak14', label:'🏆 14-Day Streak', check: t=>t.longest>=14},
+  {id:'total10', label:'💎 10 Perfect Days Total', check: t=>t.totalPerfect>=10},
+  {id:'total25', label:'👑 25 Perfect Days Total', check: t=>t.totalPerfect>=25},
+];
 
 /* ============ TODAY TAB ============ */
 function renderToday(main){
@@ -287,6 +354,7 @@ function renderToday(main){
       <div class="row" style="margin-top:10px;">
         <span class="pill">🔥 ${kcalDone} / ${kcalTotal} kcal logged</span>
         <span class="pill">💪 ${proteinDone}g / ${proteinTotal}g protein</span>
+        <span class="pill">⚡ Streak: <b>${currentStreak()}</b> day${currentStreak()===1?'':'s'}</span>
       </div>
     </div>
     <div class="card">
@@ -328,6 +396,56 @@ function renderToday(main){
 function toggleMeal(i){ const log = ensureLog(todayStr()); log.meals[i].done = !log.meals[i].done; saveDB(); render(); }
 function setEnergy(n){ const log = ensureLog(todayStr()); log.checkin.energy = n; saveDB(); render(); }
 function setNote(v){ const log = ensureLog(todayStr()); log.checkin.notes = v; saveDB(); }
+
+/* ============ TRACKER TAB (renamed from History) ============ */
+function renderHistory(main){
+  const streak = currentStreak();
+  const longest = longestStreak();
+  const totalPerfect = totalPerfectDays();
+  const unlocked = BADGES.filter(b=>b.check({totalPerfect, longest}));
+  const locked = BADGES.filter(b=>!b.check({totalPerfect, longest}));
+
+  const dates = getLastNDates(30);
+  const rows = dates.map(ds=>({ds, c: dayCompletion(ds)})).filter(r=>r.c);
+
+  main.innerHTML = `
+    <div class="card">
+      <h2>🔥 Streak</h2>
+      <div class="row">
+        <span class="pill">Current: <b>${streak}</b> day${streak===1?'':'s'}</span>
+        <span class="pill">Longest: <b>${longest}</b> day${longest===1?'':'s'}</span>
+        <span class="pill">Total perfect days: <b>${totalPerfect}</b></span>
+      </div>
+      <div class="muted" style="margin-top:8px;">A "perfect day" = every logged meal checked off + workout marked done (on scheduled workout days).</div>
+    </div>
+
+    <div class="card">
+      <h2>🏆 Achievements</h2>
+      <div class="stack">
+        ${unlocked.map(b=>`<div class="rec-card" style="border-color:var(--accent);"><div class="rec-top">${b.label}</div><div class="rec-sub">Unlocked ✅</div></div>`).join('')}
+        ${locked.map(b=>`<div class="rec-card" style="opacity:0.5;"><div class="rec-top">${b.label}</div><div class="rec-sub">Locked</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Last 30 Days</h2>
+      ${rows.length===0 ? '<div class="muted">No history yet — start checking off meals on the Today tab.</div>' : `
+      <div class="stack">
+        ${rows.map(r=>`
+          <div class="rec-card ${r.c.perfect?'':''}" style="${r.c.perfect ? 'border-color:var(--accent);' : ''}">
+            <div class="rec-top">
+              <span>${r.ds}${r.c.perfect ? ' ✅' : ''}</span>
+              <span>${r.c.pct}%</span>
+            </div>
+            <div class="rec-sub">Meals ${r.c.mealsDone}/${r.c.mealsTotal}${r.c.workoutScheduled ? ` · Workout ${r.c.workoutDone?'done':'missed'}` : ''}</div>
+            <div class="progress-bar" role="progressbar" aria-valuenow="${r.c.pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Adherence on ${r.ds}">
+              <div class="progress-fill ${r.c.perfect?'ok':(r.c.pct>=50?'warn':'over')}" style="width:${r.c.pct}%"></div>
+            </div>
+          </div>`).join('')}
+      </div>`}
+    </div>
+  `;
+}
 
 /* ============ PLANNER TAB ============ */
 let plannerDay = dayName()==='Sat'||dayName()==='Sun' ? 'Mon' : dayName();
