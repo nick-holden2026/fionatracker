@@ -6,45 +6,86 @@
 <title>Fitness & Nutrition Tracker</title>
 <style>
   :root{
-    --bg:#0f1419; --card:#1a2129; --card2:#212b35; --accent:#4dd4a8; --accent2:#f2a65a;
-    --text:#e8edf2; --muted:#8a97a3; --danger:#e8615f; --border:#2a3440;
+    /* All text/bg pairs below verified >4.5:1 contrast */
+    --bg:#0f1419; --card:#1c242d; --card2:#252f3a; --accent:#4ddba8; --accent2:#f5b56b;
+    --text:#f2f5f8; --muted:#aeb9c4; --danger:#ff7a78; --border:#37424e;
+    --warn:#f5b56b; --ok:#4ddba8;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);padding-bottom:70px;}
+  a,button,input,select,textarea{font-family:inherit;}
+  :focus-visible{outline:3px solid var(--accent2);outline-offset:2px;}
   header{padding:16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
   header h1{margin:0;font-size:18px;}
-  header .sub{color:var(--muted);font-size:12px;margin-top:2px;}
+  header .sub{color:var(--muted);font-size:13px;margin-top:2px;}
   nav{display:flex;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:57px;z-index:9;}
-  nav button{flex:1;min-width:80px;padding:12px 8px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;border-bottom:2px solid transparent;}
-  nav button.active{color:var(--accent);border-bottom-color:var(--accent);}
+  nav button{flex:1;min-width:80px;padding:14px 8px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;border-bottom:3px solid transparent;min-height:48px;}
+  nav button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;}
   main{padding:14px;max-width:720px;margin:0 auto;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
-  .card h2{margin:0 0 10px;font-size:15px;color:var(--accent);}
-  .card h3{margin:12px 0 6px;font-size:13px;color:var(--accent2);}
-  table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--border);}
-  th{color:var(--muted);font-weight:600;}
-  .totals{font-weight:700;color:var(--accent);}
-  .pill{display:inline-block;padding:2px 8px;border-radius:12px;background:var(--card2);font-size:11px;margin-right:4px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .card h2{margin:0 0 12px;font-size:16px;color:var(--accent);}
+  .card h3{margin:16px 0 8px;font-size:14px;color:var(--accent2);}
+
+  /* Stacked spacious "record cards" replacing tables */
+  .stack{display:flex;flex-direction:column;gap:10px;}
+  .rec-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .rec-card .rec-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:700;font-size:14px;}
+  .rec-card .rec-sub{color:var(--muted);font-size:13px;margin-top:4px;}
+  .rec-card .rec-stats{display:flex;gap:14px;margin-top:8px;font-size:13px;}
+  .rec-card .rec-stats b{color:var(--accent);}
+  .rec-card.totals{border-color:var(--accent);}
+  .rec-card.totals .rec-top{color:var(--accent);}
+  .rec-card.upcoming{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2), 0 0 16px rgba(245,181,107,0.35);}
+  .rec-card.past{opacity:0.6;}
+
+  .pill{display:inline-block;padding:4px 10px;border-radius:12px;background:var(--card2);font-size:12px;margin-right:6px;border:1px solid var(--border);}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-  input,select,textarea{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;width:100%;}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px;margin-top:8px;}
-  button.btn{background:var(--accent);color:#08130f;border:none;padding:9px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;}
+  input,select,textarea{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;font-size:14px;width:100%;min-height:44px;}
+  textarea{min-height:60px;}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px;margin-top:10px;font-weight:600;}
+  button.btn{background:var(--accent);color:#06120d;border:none;padding:12px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;min-height:48px;}
   button.btn.secondary{background:var(--card2);color:var(--text);border:1px solid var(--border);}
-  button.btn.danger{background:var(--danger);color:#fff;}
-  .list-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .progress-bar{height:8px;background:var(--card2);border-radius:4px;overflow:hidden;margin-top:4px;}
-  .progress-fill{height:100%;background:var(--accent);}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .muted{color:var(--muted);font-size:12px;}
-  .day-tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:10px;}
-  .day-tabs button{white-space:nowrap;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:12px;}
-  .day-tabs button.active{background:var(--accent);color:#08130f;border-color:var(--accent);}
-  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#08130f;padding:12px 20px;border-radius:8px;font-weight:600;display:none;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.4);}
-  .checkin{display:flex;gap:6px;}
-  .checkin button{flex:1;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:16px;}
-  .checkin button.sel{background:var(--accent2);color:#08130f;border-color:var(--accent2);}
+  button.btn.danger{background:var(--danger);color:#2a0605;}
+
+  /* Giant 56px full-width tappable meal row */
+  .meal-tap{
+    display:flex; align-items:center; gap:14px; width:100%; min-height:56px;
+    background:var(--card2); border:1px solid var(--border); border-radius:10px;
+    padding:10px 14px; margin-bottom:10px; cursor:pointer; text-align:left;
+    color:var(--text); font-size:14px;
+  }
+  .meal-tap:active{transform:scale(0.99);}
+  .meal-tap .box{
+    width:26px;height:26px;border-radius:6px;border:2px solid var(--muted);
+    flex:0 0 26px; display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .meal-tap.done{border-color:var(--ok);}
+  .meal-tap.done .box{background:var(--ok);border-color:var(--ok);color:#06120d;}
+  .meal-tap .meal-info{flex:1;}
+  .meal-tap .meal-name{font-weight:700;}
+  .meal-tap .meal-sub{color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .meal-tap .meal-macros{color:var(--accent);font-size:12.5px;white-space:nowrap;font-weight:600;}
+  .meal-tap.upcoming{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2), 0 0 16px rgba(245,181,107,0.35);}
+  .meal-tap.past-item{opacity:0.6;}
+
+  .progress-bar{height:12px;background:var(--card2);border-radius:6px;overflow:hidden;margin-top:6px;border:1px solid var(--border);}
+  .progress-fill{height:100%;transition:width .3s, background-color .3s;}
+  .progress-fill.ok{background:var(--ok);}
+  .progress-fill.warn{background:var(--warn);}
+  .progress-fill.over{background:var(--danger);}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .muted{color:var(--muted);font-size:13px;}
+  .day-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;}
+  .day-tabs button{white-space:nowrap;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:13px;min-height:44px;}
+  .day-tabs button.active{background:var(--accent);color:#06120d;border-color:var(--accent);font-weight:700;}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#06120d;padding:14px 22px;border-radius:10px;font-weight:700;display:none;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+  .checkin{display:flex;gap:8px;}
+  .checkin button{flex:1;min-height:48px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:16px;}
+  .checkin button.sel{background:var(--accent2);color:#06120d;border-color:var(--accent2);font-weight:700;}
+  .list-item{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;gap:8px;}
 </style>
 </head>
 <body>
@@ -54,8 +95,8 @@
   <div class="sub" id="headerSub">Week — · Target: 10kg over 8–10 weeks</div>
 </header>
 
-<nav id="tabs">
-  <button data-tab="today" class="active">Today</button>
+<nav id="tabs" aria-label="Main sections">
+  <button data-tab="today" class="active" aria-current="page">Today</button>
   <button data-tab="planner">Planner</button>
   <button data-tab="workout">Workout</button>
   <button data-tab="sleep">Sleep</button>
@@ -65,7 +106,7 @@
 </nav>
 
 <main id="main"></main>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <audio id="buzz" preload="auto">
   <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
@@ -74,12 +115,12 @@
 <script>
 /* ============ DATA MODEL ============
 DB = {
-  profile: { heightCm, weightKg, age, sex, activity, startWeight, goalWeight, targetWeeks },
+  profile: { heightCm, weightKg, age, sex, activity, startWeight, goalWeight, targetWeeks, startDate },
   weeklyPlan: { Mon: {meals:[{time,name,grams,kcal,protein}], workout:{type,notes}}, ... },
   logs: {
     "2026-08-28": {
       meals: [{time,name,grams,kcal,protein,done:bool}],
-      workout: {done, type, sets:[{exercise,sets,reps,weight}], caloriesBurned},
+      workout: {done, type, caloriesBurned},
       sleep: {bedTime, wakeTime, hours, quality(1-5)},
       checkin: {energy(1-5), notes},
       measurements: {weightKg, waistCm}
@@ -119,37 +160,52 @@ function defaultDB(){
   };
 }
 
+/* Real per-unit values, derived from YOUR stated data:
+   - Protein atta: 46g protein / 100g atta -> 1 roti (~25g atta) = 11.5g protein, ~90kcal
+   - Baker's Loaf: 53g protein / 350g loaf, ~7.5 slices -> 1 slice = ~7g protein, ~85kcal
+   - Salad half-bowl and sprout-bowl kcal/protein are still ESTIMATES (no label given) */
+const SALAD_WEEK1 = ['Mexican Corn','Peanut Punch','Black Chana Chat','Poshan Paneer','Fruity Fun'];
+const SALAD_WEEK2 = ['Chatpata Chickpea','Sprouts Protein Salad','Mexican Veg Bowl','Soya Power Bowl','Five Bean Bowl'];
+// Toggle this to 2 once week 2 of your subscription starts
+const SALAD_ACTIVE_WEEK = 1;
+function saladFor(dayIdx){ // 0=Mon..4=Fri
+  const list = SALAD_ACTIVE_WEEK===1 ? SALAD_WEEK1 : SALAD_WEEK2;
+  return list[dayIdx];
+}
+
 function buildDefaultPlan(){
-  const base = (extras)=>[
+  const base = (dayIdx, extras)=>[
     {time:'04:00', name:'Milk tea + ½ khakhra', grams:'1 cup + ½pc', kcal:60, protein:1},
-    {time:'04:30', name:'½ Salad bowl', grams:'~100g', kcal:110, protein:5},
-    {time:'06:30', name:'½ Sprout bowl', grams:'~90g', kcal:80, protein:6},
+    {time:'04:30', name:`½ Salad bowl — ${saladFor(dayIdx)} [ESTIMATE]`, grams:'~100g', kcal:110, protein:5},
+    {time:'06:30', name:'½ Sprout bowl [ESTIMATE]', grams:'~90g', kcal:80, protein:6},
     {time:'09:00', name:'3 boiled eggs', grams:'3 whole', kcal:220, protein:18},
     ...extras,
   ];
   return {
-    Mon:{meals:base([
+    Mon:{meals:base(0,[
       {time:'12:45',name:'Dal-Rice',grams:'1 katori dal + 1 katori rice',kcal:320,protein:14},
       {time:'15:45',name:'Roasted makhana',grams:'20g',kcal:70,protein:2},
-      {time:'19:30',name:'Protein bread + egg bhurji',grams:'2 slices + 2 eggs',kcal:380,protein:26},
+      // 2 protein rotis (2x90kcal,2x11.5g) + sabji 100g + curd 1 katori
+      {time:'19:30',name:'Protein roti (x2) + sabji + curd',grams:'2 roti (~50g atta) + 100g sabji + 1 katori curd',kcal:340,protein:33},
     ]), workout:{type:'Physio', notes:'Mobility/recovery, light intensity'}},
-    Tue:{meals:base([
-      {time:'12:45',name:'Protein roti + sabji + curd',grams:'2 roti + 100g sabji + 1 katori curd',kcal:380,protein:24},
+    Tue:{meals:base(1,[
+      {time:'12:45',name:'Protein roti (x2) + sabji + curd',grams:'2 roti (~50g atta) + 100g sabji + 1 katori curd',kcal:340,protein:33},
       {time:'15:45',name:'Murmura chaat',grams:'25g + veg',kcal:90,protein:3},
-      {time:'19:30',name:'Boiled eggs (outside)',grams:'2 whole',kcal:155,protein:12},
+      {time:'19:30',name:'Boiled eggs (outside — plain, no butter)',grams:'2 whole',kcal:155,protein:12},
     ]), workout:{type:'Gym - Full body strength', notes:'Moderate intensity, 30-40min'}},
-    Wed:{meals:base([
-      {time:'12:45',name:'Protein oats + milk + chia',grams:'40g oats+150ml milk+1tsp chia',kcal:280,protein:16},
-      {time:'15:45',name:'Chaas',grams:'250ml',kcal:40,protein:3},
+    Wed:{meals:base(2,[
+      {time:'12:45',name:'Protein oats + milk + chia',grams:'40g oats + 150ml milk + 1 tsp chia',kcal:280,protein:16},
+      {time:'15:45',name:'Homemade chaas',grams:'250ml',kcal:40,protein:3},
       {time:'19:30',name:'Paneer salad',grams:'80g paneer + veg',kcal:220,protein:16},
     ]), workout:{type:'Swim', notes:'Cardio, low-impact, 30-40min'}},
-    Thu:{meals:base([
-      {time:'12:45',name:'Mexican paneer rice',grams:'1 katori rice+60g paneer+veg',kcal:350,protein:18},
+    Thu:{meals:base(3,[
+      {time:'12:45',name:'Mexican paneer rice',grams:'1 katori rice + 60g paneer + veg',kcal:350,protein:18},
       {time:'15:45',name:'Makhana + chaas',grams:'15g + 200ml',kcal:90,protein:4},
-      {time:'19:30',name:'Omelette (outside)',grams:'2 eggs',kcal:180,protein:13},
+      {time:'19:30',name:'Plain omelette (outside)',grams:'2 eggs',kcal:180,protein:13},
     ]), workout:{type:'Gym - Full body strength', notes:'Moderate intensity, 30-40min'}},
-    Fri:{meals:base([
-      {time:'12:45',name:'Protein bread + egg bhurji',grams:'2 slices + 2 eggs',kcal:380,protein:26},
+    Fri:{meals:base(4,[
+      // 2 Baker's Loaf slices (2x85kcal, 2x7g) + 2 egg bhurji
+      {time:'12:45',name:"Baker's Loaf (2 slices) + egg bhurji",grams:'2 slices (~90g loaf) + 2 eggs',kcal:280,protein:32},
       {time:'15:45',name:'Fruit + almonds',grams:'1 fruit + 6 almonds',kcal:130,protein:3},
       {time:'19:30',name:'Moong dal khichdi + curd',grams:'1 katori + 1 katori curd',kcal:300,protein:15},
     ]), workout:{type:'Swim', notes:'Cardio, low-impact, 30-40min'}},
@@ -162,13 +218,19 @@ function ensureLog(dateStr){
   if(!DB.logs[dateStr]) DB.logs[dateStr] = {meals:[], workout:{done:false}, sleep:{}, checkin:{}, measurements:{}};
   return DB.logs[dateStr];
 }
+function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function nowMin(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); }
 
 /* ============ NAVIGATION ============ */
 let activeTab = 'today';
 document.getElementById('tabs').addEventListener('click', e=>{
   if(e.target.tagName==='BUTTON'){
     activeTab = e.target.dataset.tab;
-    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===activeTab));
+    document.querySelectorAll('#tabs button').forEach(b=>{
+      const isActive = b.dataset.tab===activeTab;
+      b.classList.toggle('active', isActive);
+      if(isActive){ b.setAttribute('aria-current','page'); } else { b.removeAttribute('aria-current'); }
+    });
     render();
   }
 });
@@ -194,6 +256,8 @@ function weekProgress(){
   return {week: Math.min(DB.profile.targetWeeks, Math.floor(diffDays/7)+1)};
 }
 
+function barClass(pct){ return pct>=100 ? 'over' : pct>=80 ? 'warn' : 'ok'; }
+
 /* ============ TODAY TAB ============ */
 function renderToday(main){
   const ds = todayStr();
@@ -206,36 +270,58 @@ function renderToday(main){
   }
   let kcalTotal=0, proteinTotal=0, kcalDone=0, proteinDone=0;
   log.meals.forEach(m=>{ kcalTotal+=m.kcal; proteinTotal+=m.protein; if(m.done){kcalDone+=m.kcal; proteinDone+=m.protein;} });
+  const kcalPct = Math.min(140, kcalTotal ? (kcalDone/1450*100) : 0);
+
+  // Determine "next upcoming" meal: first not-done meal whose time hasn't fully passed 90min ago, else first not-done
+  const nMin = nowMin();
+  let upcomingIdx = log.meals.findIndex(m=>!m.done && timeToMin(m.time) >= nMin - 30);
+  if(upcomingIdx === -1) upcomingIdx = log.meals.findIndex(m=>!m.done);
 
   main.innerHTML = `
     <div class="card">
       <h2>📅 ${dn}, ${ds}</h2>
-      <div class="row muted">Plan target: ~1,450 kcal · 90g protein</div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,kcalDone/1450*100)}%"></div></div>
-      <div class="row" style="margin-top:6px;">
+      <div class="muted">Plan target: ~1,450 kcal · 90g protein</div>
+      <div class="progress-bar" role="progressbar" aria-valuenow="${kcalDone}" aria-valuemin="0" aria-valuemax="1450" aria-label="Calories logged today">
+        <div class="progress-fill ${barClass(kcalPct)}" style="width:${Math.min(100,kcalPct)}%"></div>
+      </div>
+      <div class="row" style="margin-top:10px;">
         <span class="pill">🔥 ${kcalDone} / ${kcalTotal} kcal logged</span>
         <span class="pill">💪 ${proteinDone}g / ${proteinTotal}g protein</span>
       </div>
     </div>
     <div class="card">
-      <h2>🍽️ Meals</h2>
-      ${log.meals.map((m,i)=>`
-        <div class="list-item">
-          <div>
-            <input type="checkbox" ${m.done?'checked':''} onchange="toggleMeal(${i})">
-            <b>${m.time}</b> — ${m.name} <span class="muted">(${m.grams})</span>
-          </div>
-          <div class="muted">${m.kcal}kcal / ${m.protein}g</div>
-        </div>`).join('')}
+      <h2>🍽️ Meals — tap to mark eaten</h2>
+      <div class="stack">
+        ${log.meals.map((m,i)=>{
+          const isPast = timeToMin(m.time) < nMin - 30 && !m.done && i!==upcomingIdx;
+          const isUpcoming = i===upcomingIdx;
+          const cls = ['meal-tap'];
+          if(m.done) cls.push('done');
+          if(isUpcoming) cls.push('upcoming');
+          if(isPast) cls.push('past-item');
+          return `
+          <button type="button" class="${cls.join(' ')}"
+            aria-pressed="${m.done}"
+            aria-label="${m.name}, ${m.time}, ${m.kcal} calories, ${m.protein} grams protein, ${m.done?'marked eaten':'not yet eaten'}${isUpcoming?', next up':''}"
+            onclick="toggleMeal(${i})">
+            <span class="box" aria-hidden="true">${m.done?'✓':''}</span>
+            <span class="meal-info">
+              <span class="meal-name">${m.time} — ${m.name}</span>
+              <span class="meal-sub">${m.grams}${isUpcoming && !m.done ? ' · Up next' : ''}</span>
+            </span>
+            <span class="meal-macros">${m.kcal}kcal<br>${m.protein}g</span>
+          </button>`;
+        }).join('')}
+      </div>
     </div>
     <div class="card">
       <h2>✅ Quick Check-in</h2>
-      <label>Energy today</label>
-      <div class="checkin">
-        ${[1,2,3,4,5].map(n=>`<button class="${log.checkin.energy===n?'sel':''}" onclick="setEnergy(${n})">${n}</button>`).join('')}
+      <label id="energyLabel">Energy today (1 = very low, 5 = great)</label>
+      <div class="checkin" role="group" aria-labelledby="energyLabel">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="${log.checkin.energy===n?'sel':''}" aria-pressed="${log.checkin.energy===n}" aria-label="Energy level ${n} of 5" onclick="setEnergy(${n})">${n}</button>`).join('')}
       </div>
-      <label>Notes</label>
-      <textarea rows="2" onchange="setNote(this.value)">${log.checkin.notes||''}</textarea>
+      <label for="notesInput">Notes</label>
+      <textarea id="notesInput" onchange="setNote(this.value)">${log.checkin.notes||''}</textarea>
     </div>
   `;
 }
@@ -251,19 +337,30 @@ function renderPlanner(main){
   let kcalTotal = plan.meals.reduce((s,m)=>s+m.kcal,0);
   let proteinTotal = plan.meals.reduce((s,m)=>s+m.protein,0);
   main.innerHTML = `
-    <div class="day-tabs">${days.map(d=>`<button class="${d===plannerDay?'active':''}" onclick="plannerDay='${d}';render()">${d}</button>`).join('')}</div>
+    <div class="day-tabs" role="tablist" aria-label="Select day">
+      ${days.map(d=>`<button type="button" role="tab" aria-selected="${d===plannerDay}" class="${d===plannerDay?'active':''}" onclick="plannerDay='${d}';render()">${d}</button>`).join('')}
+    </div>
     <div class="card">
       <h2>${plannerDay} Meal Plan</h2>
-      <table>
-        <tr><th>Time</th><th>Meal</th><th>Portion</th><th>Kcal</th><th>Protein</th></tr>
-        ${plan.meals.map(m=>`<tr><td>${m.time}</td><td>${m.name}</td><td>${m.grams}</td><td>${m.kcal}</td><td>${m.protein}g</td></tr>`).join('')}
-        <tr class="totals"><td colspan="3">Total</td><td>${kcalTotal}</td><td>${proteinTotal}g</td></tr>
-      </table>
+      <div class="stack">
+        ${plan.meals.map(m=>`
+          <div class="rec-card">
+            <div class="rec-top"><span>${m.time} — ${m.name}</span></div>
+            <div class="rec-sub">${m.grams}</div>
+            <div class="rec-stats"><span><b>${m.kcal}</b> kcal</span><span><b>${m.protein}g</b> protein</span></div>
+          </div>`).join('')}
+        <div class="rec-card totals">
+          <div class="rec-top"><span>Day Total</span></div>
+          <div class="rec-stats"><span><b>${kcalTotal}</b> kcal</span><span><b>${proteinTotal}g</b> protein</span></div>
+        </div>
+      </div>
       <h3>Workout</h3>
-      <div class="pill">${plan.workout.type}</div>
-      <div class="muted">${plan.workout.notes}</div>
+      <div class="rec-card">
+        <div class="rec-top">${plan.workout.type}</div>
+        <div class="rec-sub">${plan.workout.notes}</div>
+      </div>
     </div>
-    <div class="card muted">Tap a day above to view its plan. Edit meals in Settings → Reset Plan for a fresh template, or check off items daily in the Today tab.</div>
+    <div class="card muted">Tap a day above to view its plan. Check off items daily in the Today tab.</div>
   `;
 }
 
@@ -277,36 +374,38 @@ function renderWorkout(main){
     <div class="card">
       <h2>🏋️ Today's Workout — ${planned.type}</h2>
       <div class="muted">${planned.notes}</div>
-      <label>Mark complete</label>
-      <input type="checkbox" ${log.workout.done?'checked':''} onchange="toggleWorkoutDone(this.checked)"> Done
-      <label>Calories burned (approx)</label>
-      <input type="number" value="${log.workout.caloriesBurned||''}" placeholder="e.g. 220" onchange="setWorkoutCals(this.value)">
+      <button type="button" class="meal-tap ${log.workout.done?'done':''}" style="margin-top:12px;"
+        aria-pressed="${log.workout.done}" aria-label="Mark today's workout complete"
+        onclick="toggleWorkoutDone(${!log.workout.done})">
+        <span class="box" aria-hidden="true">${log.workout.done?'✓':''}</span>
+        <span class="meal-info"><span class="meal-name">${log.workout.done?'Workout complete':'Mark workout complete'}</span></span>
+      </button>
+      <label for="calsBurned">Calories burned (approx)</label>
+      <input id="calsBurned" type="number" value="${log.workout.caloriesBurned||''}" placeholder="e.g. 220" onchange="setWorkoutCals(this.value)">
     </div>
     <div class="card">
       <h2>📆 Month 1 Progressive Program (Weeks 1–4)</h2>
       <h3>Week 1–2: Foundation</h3>
-      <table>
-        <tr><th>Day</th><th>Focus</th><th>Sets x Reps</th><th>Est. kcal burn</th></tr>
-        <tr><td>Tue</td><td>Full body strength (machines/bodyweight)</td><td>3x12, 6 exercises</td><td>150-200</td></tr>
-        <tr><td>Wed</td><td>Swim (steady pace)</td><td>25-30 min continuous</td><td>200-250</td></tr>
-        <tr><td>Thu</td><td>Full body strength</td><td>3x12, 6 exercises</td><td>150-200</td></tr>
-        <tr><td>Fri</td><td>Swim (steady pace)</td><td>25-30 min continuous</td><td>200-250</td></tr>
-        <tr><td>Mon</td><td>Physio + light mobility walk</td><td>as prescribed + 15min walk</td><td>60-80</td></tr>
-      </table>
+      <div class="stack">
+        <div class="rec-card"><div class="rec-top">Tue — Full body strength</div><div class="rec-sub">Machines/bodyweight, 3×12, 6 exercises</div><div class="rec-stats"><span>Est. <b>150–200</b> kcal</span></div></div>
+        <div class="rec-card"><div class="rec-top">Wed — Swim</div><div class="rec-sub">Steady pace, 25–30 min continuous</div><div class="rec-stats"><span>Est. <b>200–250</b> kcal</span></div></div>
+        <div class="rec-card"><div class="rec-top">Thu — Full body strength</div><div class="rec-sub">3×12, 6 exercises</div><div class="rec-stats"><span>Est. <b>150–200</b> kcal</span></div></div>
+        <div class="rec-card"><div class="rec-top">Fri — Swim</div><div class="rec-sub">Steady pace, 25–30 min continuous</div><div class="rec-stats"><span>Est. <b>200–250</b> kcal</span></div></div>
+        <div class="rec-card"><div class="rec-top">Mon — Physio + light walk</div><div class="rec-sub">As prescribed + 15 min walk</div><div class="rec-stats"><span>Est. <b>60–80</b> kcal</span></div></div>
+      </div>
       <h3>Week 3–4: Progression</h3>
-      <div class="muted">Rule: if all Week 1-2 sets feel "easy" (RPE ≤6/10), progress as below. If not, repeat Week 1-2 loads one more week.</div>
-      <table>
-        <tr><th>Day</th><th>Change</th></tr>
-        <tr><td>Strength days</td><td>3x12 → 3x15, OR add 5-10% weight/resistance</td></tr>
-        <tr><td>Swim days</td><td>30min → 35-40min, or add 2x50m faster intervals</td></tr>
-        <tr><td>Mon</td><td>Physio continues; add 20min walk if cleared</td></tr>
-      </table>
-      <h3>Progression rule (Months 2-3)</h3>
-      <div class="muted">Every 2 weeks: if energy check-ins average ≥3.5/5 and no joint pain, add ONE of: +1 set, +5-10% load, or +5min cardio. Never increase volume AND intensity in the same week.</div>
+      <div class="muted">Rule: if all Week 1–2 sets feel "easy" (RPE ≤6/10), progress as below. If not, repeat Week 1–2 loads one more week.</div>
+      <div class="stack" style="margin-top:8px;">
+        <div class="rec-card"><div class="rec-top">Strength days</div><div class="rec-sub">3×12 → 3×15, OR add 5–10% weight/resistance</div></div>
+        <div class="rec-card"><div class="rec-top">Swim days</div><div class="rec-sub">30 min → 35–40 min, or add 2×50m faster intervals</div></div>
+        <div class="rec-card"><div class="rec-top">Monday</div><div class="rec-sub">Physio continues; add 20 min walk if cleared</div></div>
+      </div>
+      <h3>Progression rule (Months 2–3)</h3>
+      <div class="muted">Every 2 weeks: if energy check-ins average ≥3.5/5 and no joint pain, add ONE of: +1 set, +5–10% load, or +5 min cardio. Never increase volume AND intensity in the same week.</div>
     </div>
   `;
 }
-function toggleWorkoutDone(v){ const log = ensureLog(todayStr()); log.workout.done=v; saveDB(); }
+function toggleWorkoutDone(v){ const log = ensureLog(todayStr()); log.workout.done=v; saveDB(); render(); }
 function setWorkoutCals(v){ const log = ensureLog(todayStr()); log.workout.caloriesBurned=Number(v); saveDB(); }
 
 /* ============ SLEEP TAB ============ */
@@ -316,24 +415,33 @@ function renderSleep(main){
   const last7 = getLastNDates(7).map(d=>({date:d, sleep: DB.logs[d]?.sleep||{}}));
   main.innerHTML = `
     <div class="card">
-      <h2>😴 Log Tonight's Sleep (for last night, log in morning)</h2>
+      <h2>😴 Log Tonight's Sleep (log in the morning, for last night)</h2>
       <div class="grid2">
-        <div><label>Bed time</label><input type="time" value="${log.sleep.bedTime||'21:15'}" onchange="setSleep('bedTime',this.value)"></div>
-        <div><label>Wake time</label><input type="time" value="${log.sleep.wakeTime||'03:15'}" onchange="setSleep('wakeTime',this.value)"></div>
+        <div><label for="bedTime">Bed time</label><input id="bedTime" type="time" value="${log.sleep.bedTime||'21:15'}" onchange="setSleep('bedTime',this.value)"></div>
+        <div><label for="wakeTime">Wake time</label><input id="wakeTime" type="time" value="${log.sleep.wakeTime||'03:15'}" onchange="setSleep('wakeTime',this.value)"></div>
       </div>
-      <label>Quality (1-5)</label>
-      <div class="checkin">${[1,2,3,4,5].map(n=>`<button class="${log.sleep.quality===n?'sel':''}" onclick="setSleep('quality',${n})">${n}</button>`).join('')}</div>
+      <label id="qualLabel">Quality (1–5)</label>
+      <div class="checkin" role="group" aria-labelledby="qualLabel">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="${log.sleep.quality===n?'sel':''}" aria-pressed="${log.sleep.quality===n}" aria-label="Sleep quality ${n} of 5" onclick="setSleep('quality',${n})">${n}</button>`).join('')}
+      </div>
     </div>
     <div class="card">
       <h2>Last 7 Days</h2>
-      <table>
-        <tr><th>Date</th><th>Bed</th><th>Wake</th><th>Hrs</th><th>Quality</th></tr>
+      <div class="stack">
         ${last7.map(r=>{
           const hrs = calcSleepHours(r.sleep.bedTime, r.sleep.wakeTime);
-          return `<tr><td>${r.date.slice(5)}</td><td>${r.sleep.bedTime||'-'}</td><td>${r.sleep.wakeTime||'-'}</td><td>${hrs||'-'}</td><td>${r.sleep.quality||'-'}</td></tr>`;
+          return `<div class="rec-card">
+            <div class="rec-top"><span>${r.date}</span></div>
+            <div class="rec-stats">
+              <span>Bed <b>${r.sleep.bedTime||'—'}</b></span>
+              <span>Wake <b>${r.sleep.wakeTime||'—'}</b></span>
+              <span><b>${hrs||'—'}</b> hrs</span>
+              <span>Quality <b>${r.sleep.quality||'—'}</b></span>
+            </div>
+          </div>`;
         }).join('')}
-      </table>
-      <div class="muted" style="margin-top:8px;">Recovery note: your wake time (3:15 AM) means sleep debt shows up fast. If quality is consistently ≤2 or hours &lt;6, treat it as a signal to ease a workout, not push through.</div>
+      </div>
+      <div class="muted" style="margin-top:10px;">Recovery note: your wake time (3:15 AM) means sleep debt shows up fast. If quality is consistently ≤2 or hours &lt;6, treat it as a signal to ease a workout, not push through.</div>
     </div>
   `;
 }
@@ -357,26 +465,28 @@ function renderProgress(main){
   const latestW = allDates.length ? DB.logs[allDates[allDates.length-1]].measurements.weightKg : DB.profile.startWeight;
   const lost = (DB.profile.startWeight - latestW).toFixed(1);
   const target = DB.profile.startWeight - DB.profile.goalWeight;
+  const pct = Math.min(100,(lost/target)*100);
   main.innerHTML = `
     <div class="card">
       <h2>⚖️ Log Today's Measurements</h2>
       <div class="grid2">
-        <div><label>Weight (kg)</label><input type="number" step="0.1" value="${log.measurements.weightKg||''}" onchange="setMeasure('weightKg',this.value)"></div>
-        <div><label>Waist (cm)</label><input type="number" step="0.1" value="${log.measurements.waistCm||''}" onchange="setMeasure('waistCm',this.value)"></div>
+        <div><label for="wKg">Weight (kg)</label><input id="wKg" type="number" step="0.1" value="${log.measurements.weightKg||''}" onchange="setMeasure('weightKg',this.value)"></div>
+        <div><label for="wCm">Waist (cm)</label><input id="wCm" type="number" step="0.1" value="${log.measurements.waistCm||''}" onchange="setMeasure('waistCm',this.value)"></div>
       </div>
-      <div class="muted" style="margin-top:6px;">Weigh in max 2x/week, same time, before food. Waist: same tape position weekly.</div>
+      <div class="muted" style="margin-top:8px;">Weigh in max 2x/week, same time, before food. Waist: same tape position weekly.</div>
     </div>
     <div class="card">
       <h2>📊 Progress vs Target</h2>
       <div class="row"><span class="pill">Lost: ${lost}kg</span><span class="pill">Target: ${target}kg</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(lost/target)*100)}%"></div></div>
+      <div class="progress-bar" role="progressbar" aria-valuenow="${lost}" aria-valuemin="0" aria-valuemax="${target}" aria-label="Weight lost vs target">
+        <div class="progress-fill ok" style="width:${pct}%"></div>
+      </div>
       <h3>Milestones</h3>
-      <table>
-        <tr><th>Milestone</th><th>Target Weight</th><th>Target Week</th></tr>
-        <tr><td>Milestone 1</td><td>${(DB.profile.startWeight-3.5).toFixed(1)}kg</td><td>Week 3-4</td></tr>
-        <tr><td>Milestone 2</td><td>${(DB.profile.startWeight-6.5).toFixed(1)}kg</td><td>Week 6-7</td></tr>
-        <tr><td>Goal</td><td>${DB.profile.goalWeight}kg</td><td>Week 8-10</td></tr>
-      </table>
+      <div class="stack">
+        <div class="rec-card"><div class="rec-top">Milestone 1</div><div class="rec-stats"><span><b>${(DB.profile.startWeight-3.5).toFixed(1)}kg</b></span><span>Week 3–4</span></div></div>
+        <div class="rec-card"><div class="rec-top">Milestone 2</div><div class="rec-stats"><span><b>${(DB.profile.startWeight-6.5).toFixed(1)}kg</b></span><span>Week 6–7</span></div></div>
+        <div class="rec-card"><div class="rec-top">Goal</div><div class="rec-stats"><span><b>${DB.profile.goalWeight}kg</b></span><span>Week 8–10</span></div></div>
+      </div>
       <h3>If you plateau (no change 2+ weeks)</h3>
       <div class="muted">
         1. Check waist/energy first — scale can lag real progress.<br>
@@ -387,9 +497,13 @@ function renderProgress(main){
     </div>
     <div class="card">
       <h2>Weight Log</h2>
-      <table><tr><th>Date</th><th>Weight</th><th>Waist</th></tr>
-      ${allDates.slice(-10).reverse().map(d=>`<tr><td>${d}</td><td>${DB.logs[d].measurements.weightKg}kg</td><td>${DB.logs[d].measurements.waistCm||'-'}cm</td></tr>`).join('')}
-      </table>
+      <div class="stack">
+        ${allDates.slice(-10).reverse().map(d=>`
+          <div class="rec-card">
+            <div class="rec-top"><span>${d}</span></div>
+            <div class="rec-stats"><span><b>${DB.logs[d].measurements.weightKg}kg</b></span><span>Waist <b>${DB.logs[d].measurements.waistCm||'—'}cm</b></span></div>
+          </div>`).join('') || '<div class="muted">No entries yet.</div>'}
+      </div>
     </div>
   `;
 }
@@ -402,22 +516,29 @@ function renderReminders(main){
     <div class="card">
       <h2>🔔 Reminders</h2>
       <div class="muted">Status: ${notifPermission==='granted'?'✅ Browser notifications enabled':'⚠️ Using in-page + sound alerts only'}</div>
-      <button class="btn" onclick="requestNotifPermission()">Enable Browser Notifications</button>
-      <div class="muted" style="margin-top:6px;">Note: browser notifications only fire while this tab is open (or backgrounded, not fully closed) unless installed as a PWA. Keep this tab open during your routine for reliability, or install to home screen.</div>
+      <button type="button" class="btn" style="margin-top:10px;" onclick="requestNotifPermission()">Enable Browser Notifications</button>
+      <div class="muted" style="margin-top:8px;">Note: browser notifications only fire while this tab is open (or backgrounded, not fully closed) unless installed as a PWA. Keep this tab open during your routine for reliability, or install to home screen.</div>
     </div>
     <div class="card">
       <h2>Reminder Schedule</h2>
-      ${DB.reminders.map(r=>`
-        <div class="list-item">
-          <div><input type="checkbox" ${r.enabled?'checked':''} onchange="toggleReminder(${r.id})"> <b>${r.time}</b> — ${r.label}</div>
-          <button class="btn secondary" onclick="deleteReminder(${r.id})">✕</button>
-        </div>`).join('')}
+      <div class="stack">
+        ${DB.reminders.map(r=>`
+          <div class="rec-card row" style="justify-content:space-between;">
+            <button type="button" class="meal-tap ${r.enabled?'done':''}" style="margin:0;flex:1;"
+              aria-pressed="${r.enabled}" aria-label="${r.label} at ${r.time}, ${r.enabled?'enabled':'disabled'}"
+              onclick="toggleReminder(${r.id})">
+              <span class="box" aria-hidden="true">${r.enabled?'✓':''}</span>
+              <span class="meal-info"><span class="meal-name">${r.time} — ${r.label}</span></span>
+            </button>
+            <button type="button" class="btn danger" aria-label="Delete reminder: ${r.label}" onclick="deleteReminder(${r.id})">✕</button>
+          </div>`).join('')}
+      </div>
     </div>
     <div class="card">
       <h2>Add Reminder</h2>
-      <label>Time</label><input type="time" id="newRemTime">
-      <label>Label</label><input type="text" id="newRemLabel" placeholder="e.g. Take vitamins">
-      <button class="btn" style="margin-top:10px;" onclick="addReminder()">Add</button>
+      <label for="newRemTime">Time</label><input id="newRemTime" type="time">
+      <label for="newRemLabel">Label</label><input id="newRemLabel" type="text" placeholder="e.g. Take vitamins">
+      <button type="button" class="btn" style="margin-top:10px;" onclick="addReminder()">Add</button>
     </div>
   `;
 }
@@ -436,7 +557,7 @@ function addReminder(){
   saveDB(); render();
 }
 
-/* Reminder check loop — fires once per minute, matches HH:MM, dedupes per day */
+/* Reminder check loop — fires once per ~20s, matches HH:MM, dedupes per day */
 let firedToday = {};
 setInterval(()=>{
   const now = new Date();
@@ -449,7 +570,7 @@ setInterval(()=>{
       fireReminder(r.label);
     }
   });
-}, 20000); // check every 20s, tolerant of drift
+}, 20000);
 
 function fireReminder(label){
   showToast('⏰ ' + label);
@@ -471,32 +592,34 @@ function renderSettings(main){
     <div class="card">
       <h2>👤 Your Profile</h2>
       <div class="grid2">
-        <div><label>Height (cm)</label><input type="number" value="${p.heightCm}" onchange="setProfile('heightCm',this.value)"></div>
-        <div><label>Current Weight (kg)</label><input type="number" step="0.1" value="${p.weightKg}" onchange="setProfile('weightKg',this.value)"></div>
-        <div><label>Age</label><input type="number" value="${p.age}" onchange="setProfile('age',this.value)"></div>
-        <div><label>Sex</label>
-          <select onchange="setProfile('sex',this.value)">
+        <div><label for="pHeight">Height (cm)</label><input id="pHeight" type="number" value="${p.heightCm}" onchange="setProfile('heightCm',this.value)"></div>
+        <div><label for="pWeight">Current Weight (kg)</label><input id="pWeight" type="number" step="0.1" value="${p.weightKg}" onchange="setProfile('weightKg',this.value)"></div>
+        <div><label for="pAge">Age</label><input id="pAge" type="number" value="${p.age}" onchange="setProfile('age',this.value)"></div>
+        <div><label for="pSex">Sex</label>
+          <select id="pSex" onchange="setProfile('sex',this.value)">
             <option value="female" ${p.sex==='female'?'selected':''}>Female</option>
             <option value="male" ${p.sex==='male'?'selected':''}>Male</option>
           </select>
         </div>
-        <div><label>Activity Level</label>
-          <select onchange="setProfile('activity',this.value)">
+        <div><label for="pActivity">Activity Level</label>
+          <select id="pActivity" onchange="setProfile('activity',this.value)">
             <option value="sedentary" ${p.activity==='sedentary'?'selected':''}>Sedentary</option>
             <option value="light" ${p.activity==='light'?'selected':''}>Light (this plan)</option>
             <option value="moderate" ${p.activity==='moderate'?'selected':''}>Moderate</option>
           </select>
         </div>
-        <div><label>Goal Weight (kg)</label><input type="number" step="0.1" value="${p.goalWeight}" onchange="setProfile('goalWeight',this.value)"></div>
+        <div><label for="pGoal">Goal Weight (kg)</label><input id="pGoal" type="number" step="0.1" value="${p.goalWeight}" onchange="setProfile('goalWeight',this.value)"></div>
       </div>
-      <label>Target duration (weeks)</label>
-      <input type="number" value="${p.targetWeeks}" onchange="setProfile('targetWeeks',this.value)">
-      <div class="muted" style="margin-top:8px;">Safe rate guide: 0.5-1kg/week. For your profile, 8-10 weeks for 10kg is the safe range — avoid compressing this further.</div>
+      <label for="pWeeks">Target duration (weeks)</label>
+      <input id="pWeeks" type="number" value="${p.targetWeeks}" onchange="setProfile('targetWeeks',this.value)">
+      <div class="muted" style="margin-top:10px;">Safe rate guide: 0.5–1kg/week. For your profile, 8–10 weeks for 10kg is the safe range — avoid compressing this further.</div>
     </div>
     <div class="card">
       <h2>⚠️ Danger Zone</h2>
-      <button class="btn danger" onclick="resetAll()">Reset All Data</button>
-      <button class="btn secondary" onclick="exportData()" style="margin-left:8px;">Export JSON Backup</button>
+      <div class="row">
+        <button type="button" class="btn danger" onclick="resetAll()">Reset All Data</button>
+        <button type="button" class="btn secondary" onclick="exportData()">Export JSON Backup</button>
+      </div>
     </div>
   `;
 }
