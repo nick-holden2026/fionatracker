@@ -219,7 +219,8 @@ function buildDefaultPlan(){
 function todayStr(d=new Date()){ return d.toISOString().slice(0,10); }
 function dayName(d=new Date()){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]; }
 function ensureLog(dateStr){
-  if(!DB.logs[dateStr]) DB.logs[dateStr] = {meals:[], workout:{done:false}, sleep:{}, checkin:{}, measurements:{}};
+  if(!DB.logs[dateStr]) DB.logs[dateStr] = {meals:[], workout:{done:false}, sleep:{}, checkin:{}, measurements:{}, extras:[]};
+  if(!DB.logs[dateStr].extras) DB.logs[dateStr].extras = []; // migrate older logs
   return DB.logs[dateStr];
 }
 function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
@@ -329,7 +330,36 @@ const BADGES = [
   {id:'total25', label:'👑 25 Perfect Days Total', check: t=>t.totalPerfect>=25},
 ];
 
+/* Universal per-100g reference values for common foods, so you can enter EXACT grams and get
+   calories/protein auto-calculated instead of guessing. Eggs are "per piece" since that's how
+   you actually count them. Extend this list any time you learn an exact label value. */
+const FOOD_DB = [
+  {name:'Roti (protein atta)', per:'100g', kcal:340, protein:46},
+  {name:'Roti (regular atta)', per:'100g', kcal:340, protein:12},
+  {name:'Cooked rice', per:'100g', kcal:130, protein:2.7},
+  {name:'Cooked dal (moong/toor)', per:'100g', kcal:105, protein:7},
+  {name:'Boiled egg', per:'1 piece', kcal:78, protein:6.3},
+  {name:'Paneer', per:'100g', kcal:265, protein:18},
+  {name:'Curd (plain)', per:'100g', kcal:60, protein:3.5},
+  {name:'Milk (full fat)', per:'100ml', kcal:60, protein:3.2},
+  {name:"Baker's Loaf protein bread", per:'100g', kcal:265, protein:15},
+  {name:'Khakhra', per:'1 piece', kcal:120, protein:3},
+  {name:'Roasted makhana', per:'100g', kcal:350, protein:9.7},
+  {name:'Roasted peanuts', per:'100g', kcal:570, protein:26},
+  {name:'Cooked soya chunks', per:'100g', kcal:135, protein:16.5},
+  {name:'Cooked sprouts (mixed)', per:'100g', kcal:90, protein:7},
+  {name:'Besan (gram flour, raw)', per:'100g', kcal:387, protein:22},
+  {name:'Banana', per:'1 piece', kcal:105, protein:1.3},
+  {name:'Almonds', per:'100g', kcal:575, protein:21},
+  {name:'Puffed rice (murmura)', per:'100g', kcal:325, protein:7},
+];
+function foodDbOptions(selectedName){
+  return FOOD_DB.map(f=>`<option value="${f.name}" ${f.name===selectedName?'selected':''}>${f.name} (per ${f.per})</option>`).join('');
+}
+function lookupFood(name){ return FOOD_DB.find(f=>f.name===name); }
+
 /* ============ TODAY TAB ============ */
+let editingMealIdx = null;
 function renderToday(main){
   const ds = todayStr();
   const dn = dayName();
@@ -341,6 +371,8 @@ function renderToday(main){
   }
   let kcalTotal=0, proteinTotal=0, kcalDone=0, proteinDone=0;
   log.meals.forEach(m=>{ kcalTotal+=m.kcal; proteinTotal+=m.protein; if(m.done){kcalDone+=m.kcal; proteinDone+=m.protein;} });
+  // Manual/ad-hoc entries always count as "eaten" the moment they're logged
+  log.extras.forEach(e=>{ kcalTotal+=e.kcal; proteinTotal+=e.protein; kcalDone+=e.kcal; proteinDone+=e.protein; });
   const kcalPct = Math.min(140, kcalTotal ? (kcalDone/1450*100) : 0);
 
   // Determine "next upcoming" meal: first not-done meal whose time hasn't fully passed 90min ago, else first not-done
@@ -367,24 +399,99 @@ function renderToday(main){
         ${log.meals.map((m,i)=>{
           const isPast = timeToMin(m.time) < nMin - 30 && !m.done && i!==upcomingIdx;
           const isUpcoming = i===upcomingIdx;
+
+          if(editingMealIdx===i){
+            return `
+            <div class="rec-card" style="border-color:var(--accent2);">
+              <label for="editName${i}">Food name</label>
+              <input id="editName${i}" type="text" value="${m.name.replace(/"/g,'&quot;')}">
+              <div class="grid2">
+                <div><label for="editTime${i}">Time</label><input id="editTime${i}" type="time" value="${m.time}"></div>
+                <div><label for="editGrams${i}">Portion (label)</label><input id="editGrams${i}" type="text" value="${m.grams.replace(/"/g,'&quot;')}"></div>
+              </div>
+
+              <h3 style="font-size:12.5px;">🧮 Auto-calculate (optional — use if you know exact grams)</h3>
+              <div class="muted" style="margin-top:-4px;">Pick a food + enter exact amount, and calories/protein below fill in automatically.</div>
+              <div class="grid2">
+                <div><label for="editFood${i}">Known food</label>
+                  <select id="editFood${i}">
+                    <option value="">— choose to auto-calc —</option>
+                    ${foodDbOptions('')}
+                  </select>
+                </div>
+                <div><label for="editQty${i}">Amount (grams, or count for "per piece")</label><input id="editQty${i}" type="number" placeholder="e.g. 55"></div>
+              </div>
+              <button type="button" class="btn secondary" style="margin-top:8px;" onclick="applyFoodCalc(${i})">Calculate & fill in</button>
+
+              <div class="grid2" style="margin-top:14px;">
+                <div><label for="editKcal${i}">Calories (final)</label><input id="editKcal${i}" type="number" value="${m.kcal}"></div>
+                <div><label for="editProtein${i}">Protein g (final)</label><input id="editProtein${i}" type="number" value="${m.protein}"></div>
+              </div>
+              <div class="row" style="margin-top:12px;">
+                <button type="button" class="btn" onclick="saveMealEdit(${i})">Save</button>
+                <button type="button" class="btn secondary" onclick="cancelMealEdit()">Cancel</button>
+              </div>
+            </div>`;
+          }
+
           const cls = ['meal-tap'];
           if(m.done) cls.push('done');
           if(isUpcoming) cls.push('upcoming');
           if(isPast) cls.push('past-item');
           return `
-          <button type="button" class="${cls.join(' ')}"
-            aria-pressed="${m.done}"
-            aria-label="${m.name}, ${m.time}, ${m.kcal} calories, ${m.protein} grams protein, ${m.done?'marked eaten':'not yet eaten'}${isUpcoming?', next up':''}"
-            onclick="toggleMeal(${i})">
-            <span class="box" aria-hidden="true">${m.done?'✓':''}</span>
-            <span class="meal-info">
-              <span class="meal-name">${m.time} — ${m.name}</span>
-              <span class="meal-sub">${m.grams}${isUpcoming && !m.done ? ' · Up next' : ''}</span>
-            </span>
-            <span class="meal-macros">${m.kcal}kcal<br>${m.protein}g</span>
-          </button>`;
+          <div class="row" style="gap:8px;align-items:stretch;">
+            <button type="button" class="${cls.join(' ')}" style="margin-bottom:0;flex:1;"
+              aria-pressed="${m.done}"
+              aria-label="${m.name}, ${m.time}, ${m.kcal} calories, ${m.protein} grams protein, ${m.done?'marked eaten':'not yet eaten'}${isUpcoming?', next up':''}"
+              onclick="toggleMeal(${i})">
+              <span class="box" aria-hidden="true">${m.done?'✓':''}</span>
+              <span class="meal-info">
+                <span class="meal-name">${m.time} — ${m.name}</span>
+                <span class="meal-sub">${m.grams}${isUpcoming && !m.done ? ' · Up next' : ''}</span>
+              </span>
+              <span class="meal-macros">${m.kcal}kcal<br>${m.protein}g</span>
+            </button>
+            <button type="button" class="btn secondary" style="min-width:48px;flex:0 0 auto;" aria-label="Edit ${m.name}" onclick="startMealEdit(${i})">✏️</button>
+          </div>`;
         }).join('')}
       </div>
+    </div>
+    <div class="card">
+      <h2>➕ Log Something Else Eaten</h2>
+      <div class="muted">For anything not on today's plan. Pick a known food + exact grams to auto-calculate, or enter totals directly if you already know them.</div>
+      <label for="manName">Food name</label>
+      <input id="manName" type="text" placeholder="e.g. Banana, Restaurant thali, Chocolate">
+
+      <h3 style="font-size:12.5px;">🧮 Auto-calculate (optional)</h3>
+      <div class="grid2">
+        <div><label for="manFood">Known food</label>
+          <select id="manFood">
+            <option value="">— choose to auto-calc —</option>
+            ${foodDbOptions('')}
+          </select>
+        </div>
+        <div><label for="manQty">Amount (grams, or count)</label><input id="manQty" type="number" placeholder="e.g. 120"></div>
+      </div>
+      <button type="button" class="btn secondary" style="margin-top:8px;" onclick="applyManualFoodCalc()">Calculate & fill in</button>
+
+      <div class="grid2" style="margin-top:14px;">
+        <div><label for="manKcalTotal">Total kcal (final)</label><input id="manKcalTotal" type="number" placeholder="e.g. 105"></div>
+        <div><label for="manProteinTotal">Protein g (final)</label><input id="manProteinTotal" type="number" placeholder="e.g. 1"></div>
+      </div>
+      <button type="button" class="btn" style="margin-top:12px;" onclick="addManualEntry()">Add to Today's Total</button>
+
+      ${log.extras.length>0 ? `
+      <h3>Logged today</h3>
+      <div class="stack">
+        ${log.extras.map((e,i)=>`
+          <div class="rec-card row" style="justify-content:space-between;">
+            <div>
+              <div class="rec-top" style="font-weight:700;">${e.name}</div>
+              <div class="rec-sub">${e.grams ? e.grams+' · ' : ''}${e.kcal}kcal · ${e.protein}g protein</div>
+            </div>
+            <button type="button" class="btn danger" aria-label="Remove ${e.name} from today's log" onclick="deleteManualEntry(${i})">✕</button>
+          </div>`).join('')}
+      </div>` : ''}
     </div>
     <div class="card">
       <h2>✅ Quick Check-in</h2>
@@ -400,6 +507,98 @@ function renderToday(main){
 function toggleMeal(i){ const log = ensureLog(todayStr()); log.meals[i].done = !log.meals[i].done; saveDB(); render(); }
 function setEnergy(n){ const log = ensureLog(todayStr()); log.checkin.energy = n; saveDB(); render(); }
 function setNote(v){ const log = ensureLog(todayStr()); log.checkin.notes = v; saveDB(); }
+
+function startMealEdit(i){ editingMealIdx = i; render(); }
+function cancelMealEdit(){ editingMealIdx = null; render(); }
+
+function applyFoodCalc(i){
+  const foodName = document.getElementById('editFood'+i).value;
+  const qty = Number(document.getElementById('editQty'+i).value);
+  if(!foodName){ showToast('⚠️ Choose a food first'); return; }
+  if(!qty || qty<=0){ showToast('⚠️ Enter the amount eaten'); return; }
+  const food = lookupFood(foodName);
+  if(!food) return;
+
+  let kcal, protein, gramsLabel;
+  if(food.per === '1 piece'){
+    kcal = Math.round(food.kcal * qty);
+    protein = Math.round(food.protein * qty * 10)/10;
+    gramsLabel = `${qty} pc ${food.name}`;
+  } else {
+    // per 100g or per 100ml
+    kcal = Math.round((food.kcal/100) * qty);
+    protein = Math.round((food.protein/100) * qty * 10)/10;
+    gramsLabel = `${qty}g ${food.name}`;
+  }
+
+  document.getElementById('editKcal'+i).value = kcal;
+  document.getElementById('editProtein'+i).value = protein;
+  document.getElementById('editGrams'+i).value = gramsLabel;
+  showToast('✅ Calculated from exact grams');
+}
+
+function saveMealEdit(i){
+  const name = document.getElementById('editName'+i).value.trim();
+  const time = document.getElementById('editTime'+i).value;
+  const grams = document.getElementById('editGrams'+i).value.trim();
+  const kcal = Number(document.getElementById('editKcal'+i).value) || 0;
+  const protein = Number(document.getElementById('editProtein'+i).value) || 0;
+  if(!name){ showToast('⚠️ Food name can\'t be empty'); return; }
+
+  const log = ensureLog(todayStr());
+  // Only edits TODAY's log — tomorrow this slot resets back to your saved Planner template
+  log.meals[i] = {...log.meals[i], name, time, grams, kcal, protein};
+  saveDB();
+  editingMealIdx = null;
+  render();
+  showToast('✅ Updated today\'s meal');
+}
+
+function applyManualFoodCalc(){
+  const foodName = document.getElementById('manFood').value;
+  const qty = Number(document.getElementById('manQty').value);
+  if(!foodName){ showToast('⚠️ Choose a food first'); return; }
+  if(!qty || qty<=0){ showToast('⚠️ Enter the amount eaten'); return; }
+  const food = lookupFood(foodName);
+  if(!food) return;
+
+  let kcal, protein;
+  if(food.per === '1 piece'){
+    kcal = Math.round(food.kcal * qty);
+    protein = Math.round(food.protein * qty * 10)/10;
+  } else {
+    kcal = Math.round((food.kcal/100) * qty);
+    protein = Math.round((food.protein/100) * qty * 10)/10;
+  }
+  document.getElementById('manKcalTotal').value = kcal;
+  document.getElementById('manProteinTotal').value = protein;
+  if(!document.getElementById('manName').value.trim()) document.getElementById('manName').value = food.name;
+  showToast('✅ Calculated from exact grams');
+}
+
+function addManualEntry(){
+  const name = document.getElementById('manName').value.trim();
+  const foodName = document.getElementById('manFood').value;
+  const qty = Number(document.getElementById('manQty').value) || null;
+  const food = foodName ? lookupFood(foodName) : null;
+  const grams = food ? (food.per==='1 piece' ? `${qty} pc ${food.name}` : `${qty}g ${food.name}`) : null;
+  const kcalTotal = Number(document.getElementById('manKcalTotal').value) || null;
+  const protein = Number(document.getElementById('manProteinTotal').value) || 0;
+
+  if(!name){ showToast('⚠️ Enter a food name'); return; }
+  if(!kcalTotal){ showToast('⚠️ Enter total kcal, or use the auto-calculate above'); return; }
+
+  const log = ensureLog(todayStr());
+  log.extras.push({name, grams, kcal: kcalTotal, protein, time: new Date().toTimeString().slice(0,5)});
+  saveDB();
+  ['manName','manFood','manQty','manKcalTotal','manProteinTotal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  render();
+}
+function deleteManualEntry(i){
+  const log = ensureLog(todayStr());
+  log.extras.splice(i,1);
+  saveDB(); render();
+}
 
 /* ============ TRACKER TAB (renamed from History) ============ */
 function renderHistory(main){
