@@ -152,7 +152,11 @@ let DB = loadDB();
 
 function loadDB(){
   const raw = localStorage.getItem(DB_KEY);
-  if(raw) return JSON.parse(raw);
+  if(raw){
+    const parsed = JSON.parse(raw);
+    if(!parsed.customFoods) parsed.customFoods = {}; // migrate older saved data
+    return parsed;
+  }
   return defaultDB();
 }
 function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
@@ -163,6 +167,7 @@ function defaultDB(){
       startWeight:64, goalWeight:54, targetWeeks:9, startDate: todayStr() },
     weeklyPlan: buildDefaultPlan(),
     logs: {},
+    customFoods: {},
     reminders: [
       {id:1, time:'03:15', label:'Wake + seed water', days:[0,1,2,3,4], enabled:true},
       {id:2, time:'04:30', label:'Half salad bowl', days:[0,1,2,3,4], enabled:true},
@@ -358,6 +363,18 @@ function foodDbOptions(selectedName){
 }
 function lookupFood(name){ return FOOD_DB.find(f=>f.name===name); }
 
+/* User's own remembered foods — built automatically every time a manual entry is saved.
+   Keyed by lowercase name. Lets "same as before" entries auto-fill without retyping numbers. */
+function rememberFood(name, kcal, protein, grams){
+  if(!DB.customFoods) DB.customFoods = {};
+  DB.customFoods[name.toLowerCase()] = {name, kcal, protein, grams, lastUsed: todayStr(), timesUsed: (DB.customFoods[name.toLowerCase()]?.timesUsed||0)+1};
+}
+function lookupCustomFood(name){ return DB.customFoods ? DB.customFoods[name.toLowerCase()] : null; }
+function recentCustomFoods(n=8){
+  if(!DB.customFoods) return [];
+  return Object.values(DB.customFoods).sort((a,b)=> b.timesUsed-a.timesUsed || (b.lastUsed>a.lastUsed?1:-1)).slice(0,n);
+}
+
 /* ============ TODAY TAB ============ */
 let editingMealIdx = null;
 function renderToday(main){
@@ -458,11 +475,31 @@ function renderToday(main){
     </div>
     <div class="card">
       <h2>➕ Log Something Else Eaten</h2>
-      <div class="muted">For anything not on today's plan. Pick a known food + exact grams to auto-calculate, or enter totals directly if you already know them.</div>
-      <label for="manName">Food name</label>
-      <input id="manName" type="text" placeholder="e.g. Banana, Restaurant thali, Chocolate">
+      <div class="muted">For anything not on today's plan. Pick a known food + exact grams to auto-calculate, type a food you've logged before to reuse its numbers, or enter totals directly.</div>
 
-      <h3 style="font-size:12.5px;">🧮 Auto-calculate (optional)</h3>
+      ${recentCustomFoods().length>0 ? `
+      <h3 style="font-size:12.5px;">⭐ Quick add (remembered from before)</h3>
+      <div class="stack">
+        ${recentCustomFoods().map(f=>`
+          <button type="button" class="meal-tap" style="margin-bottom:0;"
+            aria-label="Quick add ${f.name}, ${f.kcal} calories, ${f.protein} grams protein"
+            onclick="quickAddCustomFood('${f.name.replace(/'/g,"\\'")}')">
+            <span class="box" aria-hidden="true">＋</span>
+            <span class="meal-info">
+              <span class="meal-name">${f.name}</span>
+              <span class="meal-sub">${f.grams || 'tap to add same as last time'}</span>
+            </span>
+            <span class="meal-macros">${f.kcal}kcal<br>${f.protein}g</span>
+          </button>`).join('')}
+      </div>` : ''}
+
+      <label for="manName">Food name</label>
+      <input id="manName" type="text" list="customFoodsList" placeholder="e.g. Banana, Restaurant thali, Chocolate" onchange="tryAutofillFromMemory()">
+      <datalist id="customFoodsList">
+        ${Object.values(DB.customFoods||{}).map(f=>`<option value="${f.name}">`).join('')}
+      </datalist>
+
+      <h3 style="font-size:12.5px;">🧮 Auto-calculate from known food (optional)</h3>
       <div class="grid2">
         <div><label for="manFood">Known food</label>
           <select id="manFood">
@@ -492,6 +529,14 @@ function renderToday(main){
             <button type="button" class="btn danger" aria-label="Remove ${e.name} from today's log" onclick="deleteManualEntry(${i})">✕</button>
           </div>`).join('')}
       </div>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>📋 Copy From Another Day</h2>
+      <div class="muted">If today was basically "same as" a previous day's manual entries, copy them in instead of retyping.</div>
+      <label for="copyFromDate">Copy manual entries from</label>
+      <input id="copyFromDate" type="date" max="${todayStr()}">
+      <button type="button" class="btn secondary" style="margin-top:10px;" onclick="copyExtrasFromDate()">Copy that day's entries into today</button>
     </div>
     <div class="card">
       <h2>✅ Quick Check-in</h2>
@@ -548,10 +593,48 @@ function saveMealEdit(i){
   const log = ensureLog(todayStr());
   // Only edits TODAY's log — tomorrow this slot resets back to your saved Planner template
   log.meals[i] = {...log.meals[i], name, time, grams, kcal, protein};
+  rememberFood(name, kcal, protein, grams);
   saveDB();
   editingMealIdx = null;
   render();
   showToast('✅ Updated today\'s meal');
+}
+
+function tryAutofillFromMemory(){
+  const name = document.getElementById('manName').value.trim();
+  const remembered = lookupCustomFood(name);
+  if(remembered){
+    document.getElementById('manKcalTotal').value = remembered.kcal;
+    document.getElementById('manProteinTotal').value = remembered.protein;
+    showToast(`✅ Filled in from memory: ${remembered.name}`);
+  }
+}
+
+function quickAddCustomFood(name){
+  const f = lookupCustomFood(name);
+  if(!f) return;
+  const log = ensureLog(todayStr());
+  log.extras.push({name: f.name, grams: f.grams, kcal: f.kcal, protein: f.protein, time: new Date().toTimeString().slice(0,5)});
+  rememberFood(f.name, f.kcal, f.protein, f.grams); // bump timesUsed / lastUsed
+  saveDB();
+  render();
+  showToast(`✅ Added ${f.name}`);
+}
+
+function copyExtrasFromDate(){
+  const fromDate = document.getElementById('copyFromDate').value;
+  if(!fromDate){ showToast('⚠️ Pick a date to copy from'); return; }
+  const sourceLog = DB.logs[fromDate];
+  if(!sourceLog || !sourceLog.extras || sourceLog.extras.length===0){ showToast('⚠️ No manual entries logged on that day'); return; }
+  const log = ensureLog(todayStr());
+  const now = new Date().toTimeString().slice(0,5);
+  sourceLog.extras.forEach(e=>{
+    log.extras.push({...e, time: now});
+    rememberFood(e.name, e.kcal, e.protein, e.grams);
+  });
+  saveDB();
+  render();
+  showToast(`✅ Copied ${sourceLog.extras.length} item(s) from ${fromDate}`);
 }
 
 function applyManualFoodCalc(){
@@ -590,6 +673,7 @@ function addManualEntry(){
 
   const log = ensureLog(todayStr());
   log.extras.push({name, grams, kcal: kcalTotal, protein, time: new Date().toTimeString().slice(0,5)});
+  rememberFood(name, kcalTotal, protein, grams);
   saveDB();
   ['manName','manFood','manQty','manKcalTotal','manProteinTotal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   render();
